@@ -7,16 +7,18 @@ import argparse
 
 
 verbose = False
+output_view = False
 
 def arguments():
     ''' Function to define the script command line arguments '''
-    global hosts_file, cmd_file, verbose, enpasswd
+    global hosts_file, cmd_file, verbose, output_view, enpasswd
 
     parser = argparse.ArgumentParser(
-        description="PRIVET SERGEY!!! SKAZHI FILLU CHTO ON GONDIL'ER")
+        description="Network Configurator v.0.3")
     parser.add_argument('-d', '--hosts', help='Specify a host file', required=True)
     parser.add_argument('-c', '--commands', help='Specify a commands file', required=True)
     parser.add_argument('-v', '--verbose', nargs='?', default=False, help='Enables a verbose debugging mode')
+    parser.add_argument('-o','--view output', nargs='?', default=False, help='Enables a verbose mode with ouput view')
     parser.add_argument('-p', '--enable password', help='Enter enable password', required=True)
 
     args = vars(parser.parse_args())
@@ -29,8 +31,11 @@ def arguments():
         enpasswd = args['enable password']
     if args['verbose'] == None:
         verbose = True
+    if args['view output'] == None:
+       output_view = True
 
-    return hosts_file, cmd_file, verbose, enpasswd
+
+    return hosts_file, cmd_file, verbose, output_view,enpasswd
 
 arguments()
 
@@ -94,7 +99,7 @@ def telnet_client():
     telnet_session.write("enable\n")
     if ENABLE_PROMPT:
         telnet_session.read_until("enable\r\npassword:")
-        telnet_session.write(enpasswd)
+        telnet_session.write(enpasswd + "\n")
     elif WITHOUT_ENABLE_PROMPT:
          telnet_session.read_until("#")
          pass
@@ -106,6 +111,8 @@ def telnet_client():
         print "-Executing command: %s" % csv_read_commands(command, 0)
         time.sleep(3)
         telnet_output = telnet_session.read_very_eager()
+        if vverbose:
+            print telnet_output
         write_session_output(telnet_output)
 
 
@@ -131,9 +138,9 @@ def ssh_client():
         ssh_enable = ssh_shell.recv(1024)
 
         if "enable\r\nPassword: " in ssh_enable:
-            if verbose:
+            if output_view:
                 print "****Typing superuser password"
-            ssh_shell.send(enpasswd)
+            ssh_shell.send(enpasswd + "\n")
             ssh_enable = ssh_shell.recv(1024)
         time.sleep(3)
 
@@ -152,6 +159,8 @@ def ssh_client():
         time.sleep(3)
         print "-Executing command: %s" % csv_read_commands(command,0)
         ssh_output = ssh_shell.recv(10000)
+        if output_view:
+            print ssh_output
         ssh_shell.send("\n")
         time.sleep(3)
         write_session_output(ssh_output)
